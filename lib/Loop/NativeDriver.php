@@ -29,16 +29,13 @@ class NativeDriver extends Driver {
     /** @var \Amp\Loop\Watcher[][] */
     private $signalWatchers = [];
 
-    /** @var int Internal timestamp for now. */
-    private $now;
-
     /** @var bool */
     private $signalHandling;
 
     public function __construct() {
         $this->timerQueue = new \SplPriorityQueue();
         $this->signalHandling = \extension_loaded("pcntl");
-        $this->now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
+        $this->now(); // Initialize initial tick time when constructing.
     }
 
     /**
@@ -82,14 +79,14 @@ class NativeDriver extends Driver {
                         continue;
                     }
 
-                    if ($this->timerExpires[$id] > $this->now) { // Timer at top of queue has not expired.
+                    if ($this->timerExpires[$id] > $this->now()) { // Timer at top of queue has not expired.
                         break;
                     }
 
                     $this->timerQueue->extract();
 
                     if ($watcher->type & Watcher::REPEAT) {
-                        $expiration = $this->now + $watcher->value;
+                        $expiration = $this->now() + $watcher->value;
                         $this->timerExpires[$watcher->id] = $expiration;
                         $scheduleQueue[] = [$watcher, $expiration];
                     } else {
@@ -257,8 +254,6 @@ class NativeDriver extends Driver {
      * {@inheritdoc}
      */
     protected function activate(array $watchers) {
-        $now = (int) (\microtime(true) * self::MILLISEC_PER_SEC);
-
         foreach ($watchers as $watcher) {
             switch ($watcher->type) {
                 case Watcher::READABLE:
@@ -275,7 +270,7 @@ class NativeDriver extends Driver {
 
                 case Watcher::DELAY:
                 case Watcher::REPEAT:
-                    $expiration = $this->now + $watcher->value;
+                    $expiration = $this->now() + $watcher->value;
                     $this->timerExpires[$watcher->id] = $expiration;
                     $this->timerQueue->insert([$watcher, $expiration], -$expiration);
                     break;
@@ -300,8 +295,6 @@ class NativeDriver extends Driver {
                     // @codeCoverageIgnoreEnd
             }
         }
-
-        $this->now = $now;
     }
 
     /**

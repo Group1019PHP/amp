@@ -297,6 +297,15 @@ final class Loop {
     }
 
     /**
+     * Returns the current loop time in milliseconds. This time is cached and updated once per loop tick.
+     *
+     * @return int
+     */
+    public static function now(): int {
+        return self::$driver->now();
+    }
+
+    /**
      * Stores information in the loop bound registry.
      *
      * Stored information is package private. Packages MUST NOT retrieve the stored state of other packages. Packages
